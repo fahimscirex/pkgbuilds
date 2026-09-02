@@ -6,11 +6,10 @@ Actions from `packages/*/PKGBUILD`.
 ## Setup
 
 ```sh
-curl -s https://pkg.scirex.me/archrepo.pub.asc | sudo pacman-key --add -
-sudo pacman-key --lsign-key 8A17827692EECC3C5270DA9D1CE75EC9217912BA
-printf '\n[archrepo]\nServer = https://pkg.scirex.me\n' | sudo tee -a /etc/pacman.conf
-sudo pacman -Sy
+curl -s https://pkg.scirex.me/setup.sh | sudo sh
 ```
+
+Then install with pacman as usual, e.g. `sudo pacman -S openbangla-keyboard`.
 
 ## Packages
 
@@ -18,7 +17,7 @@ sudo pacman -Sy
 
 ## Adding a package
 
-Put a `PKGBUILD` in `packages/<name>/` and push. Packages already in the repo at
+Put a `PKGBUILD` in `packages/<name>/` and push. Builds also run daily. Packages already in the repo at
 the same version are skipped; `-git` packages always rebuild. Removing a
 directory removes its packages from the repo on the next run.
 

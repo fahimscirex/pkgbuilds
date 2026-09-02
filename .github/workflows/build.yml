@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths: [packages/**, build.sh, .github/workflows/build.yml]
   workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
 
 # ponytail: single publisher; two runs syncing archrepo.db concurrently would corrupt it
 concurrency:
