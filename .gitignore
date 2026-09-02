@@ -1,0 +1,5 @@
+repo/
+*.pkg.tar*
+src/
+pkg/
+*.log

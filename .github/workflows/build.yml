@@ -1,0 +1,63 @@
+name: build
+on:
+  push:
+    branches: [main]
+    paths: [packages/**, build.sh, .github/workflows/build.yml]
+  workflow_dispatch:
+
+# ponytail: single publisher; two runs syncing archrepo.db concurrently would corrupt it
+concurrency:
+  group: archrepo
+  cancel-in-progress: false
+
+env:
+  GPGKEY: 8A17827692EECC3C5270DA9D1CE75EC9217912BA
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+      options: --privileged   # makechrootpkg runs systemd-nspawn
+    steps:
+      - uses: actions/checkout@v4
+      - name: prepare builder
+        run: |
+          pacman -Syu --noconfirm --needed git rclone sudo devtools
+          sed -i '/^OPTIONS=/s/ debug / !debug /' /etc/makepkg.conf  # no -debug packages in the repo
+          systemd-machine-id-setup
+          # no systemd/D-Bus in Docker: nspawn must reuse the current cgroup instead of asking for a scope
+          mv /usr/bin/systemd-nspawn /usr/bin/systemd-nspawn.real
+          printf '#!/bin/sh\nexec /usr/bin/systemd-nspawn.real --keep-unit "$@"\n' > /usr/bin/systemd-nspawn
+          chmod +x /usr/bin/systemd-nspawn
+          mkdir -p /run/systemd/nspawn && mount -t tmpfs tmpfs /run/systemd/nspawn  # nspawn refuses to clean up on overlayfs
+          useradd -m builder
+          echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
+          chown -R builder .
+          cat >> /etc/pacman.conf <<EOT
+          [archrepo]
+          SigLevel = Never
+          Server = file://$GITHUB_WORKSPACE/repo
+          EOT
+      - name: import secrets
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          sudo -u builder gpg --batch --import <<<"$GPG_PRIVATE_KEY"
+          [[ -n $R2_ACCESS_KEY_ID ]] || exit 0
+          sudo -u builder mkdir -p /home/builder/.config/rclone
+          sudo -u builder tee /home/builder/.config/rclone/rclone.conf >/dev/null <<EOT
+          [r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = $R2_ACCESS_KEY_ID
+          secret_access_key = $R2_SECRET_ACCESS_KEY
+          endpoint = https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com
+          acl = private
+          no_check_bucket = true
+          EOT
+      - name: build and publish
+        run: sudo -u builder --preserve-env=GPGKEY ./build.sh
