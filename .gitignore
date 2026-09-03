@@ -3,3 +3,6 @@ repo/
 src/
 pkg/
 *.log
+.commandcode/
+.claude/
+handover.md
