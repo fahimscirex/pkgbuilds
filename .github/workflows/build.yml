@@ -24,6 +24,7 @@ jobs:
         run: |
           pacman -Syu --noconfirm --needed git rclone sudo devtools
           sed -i '/^OPTIONS=/s/ debug / !debug /' /etc/makepkg.conf  # no -debug packages in the repo
+          sed -i '/^COMPRESSZST=/s/=.*/=(zstd -c -T0 --ultra -22 -)/' /etc/makepkg.conf
           systemd-machine-id-setup
           # no systemd/D-Bus in Docker: nspawn must reuse the current cgroup instead of asking for a scope
           mv /usr/bin/systemd-nspawn /usr/bin/systemd-nspawn.real

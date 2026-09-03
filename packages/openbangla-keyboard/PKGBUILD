@@ -5,7 +5,7 @@
 
 pkgname="openbangla-keyboard"
 pkgver="2.0.0"
-pkgrel=10
+pkgrel=11
 pkgdesc="An OpenSource, Unicode compliant Bengali Input Method"
 arch=('x86_64')
 url="http://openbangla.github.io"
