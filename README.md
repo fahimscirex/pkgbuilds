@@ -17,8 +17,9 @@ Then install with pacman as usual, e.g. `sudo pacman -S openbangla-keyboard`.
 
 ## Adding a package
 
-Put a `PKGBUILD` in `packages/<name>/` and push. Builds also run daily. Packages already in the repo at
-the same version are skipped; `-git` packages always rebuild. Removing a
-directory removes its packages from the repo on the next run.
+Put a `PKGBUILD` in `packages/<name>/`. Builds run daily (cron) or via manual
+workflow dispatch. Packages already in the repo at the same version are skipped;
+`-git` packages always rebuild. Removing a directory removes its packages from
+the repo on the next run.
 
 Secrets: `GPG_PRIVATE_KEY`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`.

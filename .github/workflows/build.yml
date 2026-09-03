@@ -1,8 +1,5 @@
 name: build
 on:
-  push:
-    branches: [main]
-    paths: [packages/**, build.sh, .github/workflows/build.yml]
   workflow_dispatch:
   schedule:
     - cron: '0 0 * * *'
