@@ -1,6 +1,12 @@
 name: build
 on:
   workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package to build (directory under packages/, empty for all)'
+        required: false
+        default: ''
+        type: string
   schedule:
     - cron: '0 0 * * *'
 
@@ -60,4 +66,4 @@ jobs:
           no_check_bucket = true
           EOT
       - name: build and publish
-        run: sudo -u builder --preserve-env=GPGKEY ./build.sh
+        run: sudo -u builder --preserve-env=GPGKEY ./build.sh "${{ inputs.package }}"

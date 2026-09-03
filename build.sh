@@ -19,12 +19,23 @@ sync "r2:$BUCKET" "$OUT"
 [[ -f $OUT/$REPO.db.tar.zst ]] || repo-add --sign "$OUT/$REPO.db.tar.zst"
 sudo mkdir -p "$CHROOT" && sudo mkarchroot -C /etc/pacman.conf -M /etc/makepkg.conf "$CHROOT/root" base-devel
 
-for dir in packages/*/; do   # ponytail: alphabetical; order deps by naming or a list if one local package needs another
+target="${1:-}"
+target="${target#packages/}"
+target="${target%/}"
+if [[ -n "$target" ]]; then
+  [[ -d "packages/$target" ]] || { echo "==> error: package '$target' not found in packages/"; exit 1; }
+  targets=("packages/$target/")
+else
+  targets=(packages/*/)
+fi
+
+for dir in "${targets[@]}"; do   # ponytail: alphabetical; order deps by naming or a list if one local package needs another
   srcinfo=$(cd "$dir" && makepkg --printsrcinfo)
   ver=$(awk '/^\tpkgver = /{v=$3} /^\tpkgrel = /{r=$3} /^\tepoch = /{e=$3":"} END{print e v "-" r}' <<<"$srcinfo")
   names=$(awk '/^pkgname = /{print $3}' <<<"$srcinfo")
   need=0
   for name in $names; do ls "$OUT/$name-$ver-"*.pkg.tar.zst >/dev/null 2>&1 || need=1; done
+  [[ -n "$target" ]] && need=1
   ((need)) || { echo "==> $dir $ver up to date"; continue; }
 
   echo "==> building $dir ($ver)"   # -git packages report a static pkgver here and so rebuild every run
