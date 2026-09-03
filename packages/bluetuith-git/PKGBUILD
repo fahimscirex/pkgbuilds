@@ -21,6 +21,8 @@ pkgver() {
 
 prepare() {
   cd "$srcdir/$pkgname"
+  # Upstream PR #79 changed module path in go.mod without updating internal imports
+  sed -i 's|^module github.com/bluetuith-org/bluetuith|module github.com/darkhz/bluetuith|' go.mod
   mkdir -p build
 }
 
