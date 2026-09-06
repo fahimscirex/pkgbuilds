@@ -7,7 +7,7 @@ pkgname=(
     "ibus-openbangla-git"
     "fcitx5-openbangla-git"
 )
-pkgver=2.0.0.r121.g06d91e1
+pkgver=2.0.0.r128.g88f9532
 pkgrel=1
 pkgdesc="An OpenSource, Unicode compliant Bengali Input Method"
 arch=('x86_64')
@@ -56,7 +56,7 @@ build() {
     make -C build
 }
 package_openbangla-keyboard-git() {
-    depends=('qt5-base' 'qt5-svg' "openbangla-im=$pkgver" 'hicolor-icon-theme' 'zstd')
+    depends=('qt5-base' "openbangla-im=$pkgver" 'hicolor-icon-theme' 'zstd')
     provides=("${pkgbase%*-git}=$pkgver")
     conflicts=("${pkgbase%*-git}")
 
