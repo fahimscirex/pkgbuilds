@@ -103,6 +103,11 @@ done
 for ext in db db.sig db.tar.zst db.tar.zst.sig files files.sig files.tar.zst files.tar.zst.sig; do
   [[ -f "$OUT/$REPO.$ext" ]] && ln -sf "$REPO.$ext" "$OUT/archrepo.$ext"
 done
-ln -sf archrepo.pub.asc "$OUT/sc1r3x.pub.asc"
-cp archrepo.pub.asc scripts/setup.sh "$OUT/"
-sync "$OUT" "r2:$BUCKET"
+cp sc1r3x.pub.asc scripts/setup.sh "$OUT/"
+ln -sf sc1r3x.pub.asc "$OUT/archrepo.pub.asc"
+rm -f "$OUT"/*.old "$OUT"/*.old.sig
+sync --exclude "*.old*" --exclude ".commit_*" "$OUT" "r2:$BUCKET"
+# delete any existing .old and .commit_* files from R2
+if [[ -f ~/.config/rclone/rclone.conf ]]; then
+  rclone delete "r2:$BUCKET" --include "*.old*" --include ".commit_*" || true
+fi
