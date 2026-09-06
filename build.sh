@@ -30,13 +30,45 @@ else
 fi
 
 for dir in "${targets[@]}"; do   # ponytail: alphabetical; order deps by naming or a list if one local package needs another
+  pkgdir="${dir%/}"; pkgdir="${pkgdir##*/}"
   srcinfo=$(cd "$dir" && makepkg --printsrcinfo)
   ver=$(awk '/^\tpkgver = /{v=$3} /^\tpkgrel = /{r=$3} /^\tepoch = /{e=$3":"} END{print e v "-" r}' <<<"$srcinfo")
   names=$(awk '/^pkgname = /{print $3}' <<<"$srcinfo")
   need=0
-  for name in $names; do ls "$OUT/$name-$ver-"*.pkg.tar.zst >/dev/null 2>&1 || need=1; done
+  head_sha=""
+
+  if [[ "$dir" == *-git/ ]]; then
+    # ponytail: check upstream commit so unchanged git packages don't rebuild every run
+    gitsrc=$(awk '/^\tsource = (.*::)?git\+/{sub(/^\tsource = (.*::)?git\+/, ""); print; exit}' <<<"$srcinfo")
+    if [[ -n "$gitsrc" ]]; then
+      url="${gitsrc%%#*}"
+      frag="${gitsrc#$url}"; frag="${frag###}"
+      ref="HEAD"
+      [[ "$frag" =~ ^branch=(.*) ]] && ref="${BASH_REMATCH[1]}"
+      [[ "$frag" =~ ^tag=(.*) ]] && ref="refs/tags/${BASH_REMATCH[1]}"
+      [[ "$frag" =~ ^commit=(.*) ]] && ref="${BASH_REMATCH[1]}"
+      head_sha=$(git ls-remote "$url" "$ref" 2>/dev/null | awk '{print $1; exit}')
+    fi
+
+    if [[ -n "$head_sha" ]]; then
+      commit_file="$OUT/.commit_$pkgdir"
+      if [[ -f "$commit_file" ]] && [[ $(cat "$commit_file") == "$head_sha" ]]; then
+        need=0
+      else
+        short="${head_sha:0:7}"
+        for name in $names; do
+          ls "$OUT/$name-"*"$short"*.pkg.tar.zst >/dev/null 2>&1 || need=1
+        done
+      fi
+    else
+      need=1
+    fi
+  else
+    for name in $names; do ls "$OUT/$name-$ver-"*.pkg.tar.zst >/dev/null 2>&1 || need=1; done
+  fi
+
   [[ -n "$target" ]] && need=1
-  ((need)) || { echo "==> $dir $ver up to date"; continue; }
+  ((need)) || { echo "==> $dir ${head_sha:-$ver} up to date"; continue; }
 
   echo "==> building $dir ($ver)"   # -git packages report a static pkgver here and so rebuild every run
   tmp=$(mktemp -d)
@@ -48,6 +80,7 @@ for dir in "${targets[@]}"; do   # ponytail: alphabetical; order deps by naming 
     built+=("$p")
   done
   repo-add --sign --remove "$OUT/$REPO.db.tar.zst" "${built[@]}"   # after each build so later packages can depend on it
+  [[ -n "$head_sha" ]] && echo "$head_sha" > "$OUT/.commit_$pkgdir"
 done
 
 # drop anything the PKGBUILDs no longer produce (removed packages, -debug packages)
