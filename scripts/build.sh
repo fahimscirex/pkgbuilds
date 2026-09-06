@@ -5,7 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-REPO=archrepo
+REPO=sc1r3x
 BUCKET=pkgbuilds
 OUT=$PWD/repo
 CHROOT=/var/lib/archbuild
@@ -16,6 +16,10 @@ sync() {
 }
 
 sync "r2:$BUCKET" "$OUT"
+if [[ ! -f $OUT/$REPO.db.tar.zst && -f $OUT/archrepo.db.tar.zst ]]; then
+  cp -f "$OUT/archrepo.db.tar.zst" "$OUT/$REPO.db.tar.zst"
+  [[ -f $OUT/archrepo.db.tar.zst.sig ]] && cp -f "$OUT/archrepo.db.tar.zst.sig" "$OUT/$REPO.db.tar.zst.sig"
+fi
 [[ -f $OUT/$REPO.db.tar.zst ]] || repo-add --sign "$OUT/$REPO.db.tar.zst"
 sudo mkdir -p "$CHROOT" && sudo mkarchroot -C /etc/pacman.conf -M /etc/makepkg.conf "$CHROOT/root" base-devel
 
@@ -91,5 +95,10 @@ for f in "$OUT"/*.pkg.tar.zst; do
   grep -qx "$name" <<<"$keep" || { repo-remove --sign "$OUT/$REPO.db.tar.zst" "$name"; rm -f "$f" "$f.sig"; }
 done
 
+# maintain backward compatibility for existing installations using [archrepo]
+for ext in db db.sig db.tar.zst db.tar.zst.sig files files.sig files.tar.zst files.tar.zst.sig; do
+  [[ -f "$OUT/$REPO.$ext" ]] && ln -sf "$REPO.$ext" "$OUT/archrepo.$ext"
+done
+ln -sf archrepo.pub.asc "$OUT/sc1r3x.pub.asc"
 cp archrepo.pub.asc scripts/setup.sh "$OUT/"
 sync "$OUT" "r2:$BUCKET"

@@ -10,9 +10,9 @@ on:
   schedule:
     - cron: '0 0 * * *'
 
-# ponytail: single publisher; two runs syncing archrepo.db concurrently would corrupt it
+# ponytail: single publisher; two runs syncing db concurrently would corrupt it
 concurrency:
-  group: archrepo
+  group: sc1r3x
   cancel-in-progress: false
 
 env:
@@ -41,7 +41,7 @@ jobs:
           echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
           chown -R builder .
           cat >> /etc/pacman.conf <<EOT
-          [archrepo]
+          [sc1r3x]
           SigLevel = Never
           Server = file://$GITHUB_WORKSPACE/repo
           EOT
