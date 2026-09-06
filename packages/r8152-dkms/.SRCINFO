@@ -1,0 +1,18 @@
+pkgbase = r8152-dkms
+	pkgdesc = A kernel module for Realtek RTL8152/RTL8153 Based USB Ethernet Adapters
+	pkgver = 2.22.1
+	pkgrel = 1
+	url = https://github.com/peci1/realtek-r8152-linux
+	arch = x86_64
+	license = GPL-2.0-only
+	makedepends = git
+	depends = glibc
+	depends = dkms
+	provides = r8152
+	conflicts = r8152
+	source = r8152-2.22.1::git+https://github.com/peci1/realtek-r8152-linux.git#branch=import-2.22.1
+	source = dkms.conf
+	sha256sums = SKIP
+	sha256sums = fa9372b63e9661a1267215799922a6f06801b41589f5e4165733e75418f664b8
+
+pkgname = r8152-dkms

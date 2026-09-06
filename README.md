@@ -13,7 +13,7 @@ Then install with pacman as usual, e.g. `sudo pacman -S openbangla-keyboard`.
 
 ## Packages
 
-`ashell-git`, `bluetuith-git`, `openbangla-keyboard`, `openbangla-keyboard-git`, `ibus-openbangla-git`, `fcitx5-openbangla-git`, `rtw88-dkms-git`
+`ashell-git`, `bluetuith-git`, `openbangla-keyboard`, `openbangla-keyboard-git`, `ibus-openbangla-git`, `fcitx5-openbangla-git`, `r8152-dkms`, `rtw88-dkms-git`
 
 ## Adding a package
 
