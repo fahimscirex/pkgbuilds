@@ -21,6 +21,10 @@ if [[ ! -f $OUT/$REPO.db.tar.zst && -f $OUT/archrepo.db.tar.zst ]]; then
   [[ -f $OUT/archrepo.db.tar.zst.sig ]] && cp -f "$OUT/archrepo.db.tar.zst.sig" "$OUT/$REPO.db.tar.zst.sig"
 fi
 [[ -f $OUT/$REPO.db.tar.zst ]] || repo-add --sign "$OUT/$REPO.db.tar.zst"
+ln -sf "$REPO.db.tar.zst" "$OUT/$REPO.db"
+[[ -f $OUT/$REPO.db.tar.zst.sig ]] && ln -sf "$REPO.db.tar.zst.sig" "$OUT/$REPO.db.sig"
+[[ -f $OUT/$REPO.files.tar.zst ]] && ln -sf "$REPO.files.tar.zst" "$OUT/$REPO.files"
+[[ -f $OUT/$REPO.files.tar.zst.sig ]] && ln -sf "$REPO.files.tar.zst.sig" "$OUT/$REPO.files.sig"
 sudo mkdir -p "$CHROOT" && sudo mkarchroot -C /etc/pacman.conf -M /etc/makepkg.conf "$CHROOT/root" base-devel
 
 target="${1:-}"
