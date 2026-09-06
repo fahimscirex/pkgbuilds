@@ -1,0 +1,83 @@
+name: aur-updates
+on:
+  schedule:
+    - cron: '0 6 * * *'  # daily at 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-aur:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: check aur updates
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          for dir in packages/*/; do
+            pkg="${dir%/}"
+            pkg="${pkg##*/}"
+            aur_url="https://aur.archlinux.org/${pkg}.git"
+
+            remote_commit=$(git ls-remote "$aur_url" HEAD 2>/dev/null | awk '{print $1; exit}')
+            [[ -n "$remote_commit" ]] || { echo "==> could not reach AUR for $pkg, skipping"; continue; }
+
+            current_commit=""
+            [[ -f "$dir/.aurcommit" ]] && current_commit=$(cat "$dir/.aurcommit")
+
+            if [[ "$current_commit" == "$remote_commit" ]]; then
+              echo "==> $pkg is up to date with AUR ($remote_commit)"
+              continue
+            fi
+
+            echo "==> AUR update found for $pkg: ${current_commit:-none} -> $remote_commit"
+            branch="aur-update/$pkg"
+
+            git checkout main
+            git checkout -B "$branch"
+
+            tmp=$(mktemp -d)
+            git clone --depth 1 "$aur_url" "$tmp"
+            rm -rf "$tmp/.git" "$tmp/.gitignore"
+
+            cp -r "$tmp"/* "$dir/"
+            echo "$remote_commit" > "$dir/.aurcommit"
+            rm -rf "$tmp"
+
+            diff_files=$(git diff --name-only)
+            if [[ -z "$diff_files" ]]; then
+              echo "==> no file differences for $pkg"
+              git checkout main
+              continue
+            fi
+
+            git add "$dir"
+            git commit -m "chore($pkg): update from AUR ($remote_commit)"
+            git push -f origin "$branch"
+
+            existing_pr=$(gh pr list --head "$branch" --json number -q '.[0].number')
+            if [[ -z "$existing_pr" ]]; then
+              gh pr create \
+                --head "$branch" \
+                --base main \
+                --title "AUR update: $pkg" \
+                --body "Automated update for \`$pkg\` from [AUR]($aur_url).
+
+**AUR commit**: \`$remote_commit\`
+
+Please review the diff to ensure any local patches or configurations are preserved before merging."
+            else
+              echo "==> PR #$existing_pr already exists for $branch"
+            fi
+
+            git checkout main
+          done
