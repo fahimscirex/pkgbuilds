@@ -66,4 +66,4 @@ jobs:
           no_check_bucket = true
           EOT
       - name: build and publish
-        run: sudo -u builder --preserve-env=GPGKEY ./build.sh "${{ inputs.package }}"
+        run: sudo -u builder --preserve-env=GPGKEY ./scripts/build.sh "${{ inputs.package }}"

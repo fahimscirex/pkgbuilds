@@ -2,7 +2,7 @@
 # Checks packages/*/ against upstream AUR repositories.
 # Opens a GitHub PR when an update is found.
 set -euo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 target="${1:-}"
 if [[ -n "$target" ]]; then

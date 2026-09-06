@@ -3,7 +3,7 @@
 # in a clean devtools chroot, signs, repo-adds into repo/, then syncs to R2.
 # Runs as the unprivileged "builder" user (passwordless sudo, needed by the chroot).
 set -euo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 REPO=archrepo
 BUCKET=pkgbuilds
@@ -91,5 +91,5 @@ for f in "$OUT"/*.pkg.tar.zst; do
   grep -qx "$name" <<<"$keep" || { repo-remove --sign "$OUT/$REPO.db.tar.zst" "$name"; rm -f "$f" "$f.sig"; }
 done
 
-cp archrepo.pub.asc setup.sh "$OUT/"
+cp archrepo.pub.asc scripts/setup.sh "$OUT/"
 sync "$OUT" "r2:$BUCKET"
