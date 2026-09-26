@@ -1,0 +1,95 @@
+# Maintainer: Fahim Montasir Misbah <fahim@scirex.me>
+# Contributor: Jas Singh <singh.jaskir@outlook.com>
+
+pkgname=wayle
+pkgver=0.7.0
+pkgrel=1
+pkgdesc="A configurable desktop shell for Wayland compositors"
+arch=('x86_64')
+url="https://github.com/wayle-rs/wayle"
+license=('MIT')
+depends=(
+  'fftw'
+  'gcc-libs'
+  'glibc'
+  'gtk4'
+  'gtk4-layer-shell'
+  'gtksourceview5'
+  'hicolor-icon-theme'
+  'libpipewire'
+  'libpulse'
+)
+makedepends=(
+  'clang'
+  'git'
+  'rust'
+)
+optdepends=(
+  'bluez: bluetooth module'
+  'matugen: Material You color extraction'
+  'networkmanager: network module'
+  'power-profiles-daemon: power profiles module'
+  'python-pywal: color extraction'
+  'swww: wallpaper rendering'
+  'upower: battery module'
+  'wallust: color extraction'
+)
+provides=("${pkgname}")
+conflicts=("${pkgname}-bin" "${pkgname}-git")
+options=('!lto')
+source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('cbb531e25ab5cd067fb3a5696695ad3361afed266a9530beabc2462e028faefd')
+
+prepare() {
+  cd "${pkgname}-${pkgver}"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "${pkgname}-${pkgver}"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo build --frozen --release --all-targets
+}
+
+check() {
+  cd "${pkgname}-${pkgver}"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo test --frozen --release
+}
+
+package() {
+  cd "${pkgname}-${pkgver}"
+
+  # Binaries
+  install -Dm755 "target/release/${pkgname}" "${pkgdir}/usr/bin/${pkgname}"
+  install -Dm755 "target/release/${pkgname}-settings" "${pkgdir}/usr/bin/${pkgname}-settings"
+
+  # License
+  install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+
+  # System icon theme and SVG assets
+  install -dm755 "${pkgdir}/usr/share/wayle/icons"
+  cp -r resources/icons/hicolor "${pkgdir}/usr/share/wayle/icons/"
+  install -Dm644 resources/icons/index.theme "${pkgdir}/usr/share/wayle/icons/index.theme"
+  install -Dm644 resources/icons/*-LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/"
+
+  # Desktop file, app icon, and systemd service
+  install -Dm644 resources/com.wayle.settings.desktop \
+    "${pkgdir}/usr/share/applications/com.wayle.settings.desktop"
+  install -Dm644 resources/wayle-settings.svg \
+    "${pkgdir}/usr/share/icons/hicolor/scalable/apps/wayle-settings.svg"
+  install -Dm644 resources/wayle.service \
+    "${pkgdir}/usr/lib/systemd/user/wayle.service"
+
+  # Shell completions generated from binary
+  "target/release/${pkgname}" completions bash > wayle.bash
+  "target/release/${pkgname}" completions zsh > _wayle
+  "target/release/${pkgname}" completions fish > wayle.fish
+
+  install -Dm644 wayle.bash "${pkgdir}/usr/share/bash-completion/completions/wayle"
+  install -Dm644 _wayle "${pkgdir}/usr/share/zsh/site-functions/_wayle"
+  install -Dm644 wayle.fish "${pkgdir}/usr/share/fish/vendor_completions.d/wayle.fish"
+}
