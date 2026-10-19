@@ -1,0 +1,25 @@
+pkgbase = yukigram-bin
+	pkgdesc = Unofficial patch-based Telegram Desktop fork — minus the bullshit, plus the features
+	pkgver = 7.1.5.0
+	pkgrel = 1
+	url = https://github.com/yukigram/yukigram
+	install = yukigram-bin.install
+	arch = x86_64
+	license = GPL-3.0-or-later WITH sqlitestudio-OpenSSL-exception
+	depends = glibc
+	depends = fontconfig
+	depends = glib2
+	depends = hicolor-icon-theme
+	depends = freetype2
+	optdepends = geoclue: geoinformation support
+	optdepends = crow-translate: translation provider
+	optdepends = webkit2gtk-4.1: embedded browser features provided by webkit2gtk-4.1
+	optdepends = webkitgtk-6.0: embedded browser features provided by webkitgtk-6.0 (Wayland only)
+	optdepends = xdg-desktop-portal: desktop integration
+	provides = yukigram-desktop
+	conflicts = yukigram-desktop
+	noextract = yukigram-bin-7.1.5.0.tar.gz
+	source = yukigram-bin-7.1.5.0.tar.gz::https://github.com/yukigram/yukigram/releases/download/v7.1.5.0/binary-x86_64.tar.gz
+	sha256sums = 643e04a5f2a22366ef89b50386a12f4856d014f394c9ab499c5d85e9188a6829
+
+pkgname = yukigram-bin
