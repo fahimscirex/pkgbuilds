@@ -1,0 +1,21 @@
+[Desktop Entry]
+Name=NFGram
+Comment=A third-party Telegram client based on 64Gram and Telegram Desktop
+TryExec=nfgram-desktop
+Exec=nfgram-desktop -- %U
+Icon=nfgram
+Terminal=false
+StartupWMClass=NFGram
+Type=Application
+Categories=Chat;Network;InstantMessaging;Qt;
+MimeType=x-scheme-handler/tg;x-scheme-handler/tonsite;x-scheme-handler/ton;
+Keywords=tg;chat;im;messaging;messenger;sms;tdesktop;nfgram;
+Actions=quit;
+SingleMainWindow=true
+X-GNOME-UsesNotifications=true
+X-GNOME-SingleWindow=true
+
+[Desktop Action quit]
+Exec=nfgram-desktop -quit
+Name=Quit Telegram
+Icon=application-exit
