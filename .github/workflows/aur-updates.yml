@@ -17,7 +17,11 @@ permissions:
 jobs:
   check-aur:
     runs-on: ubuntu-latest
+    container: archlinux:latest  # aur-sync.sh needs makepkg --printsrcinfo
     steps:
+      - name: prepare
+        run: pacman -Syu --noconfirm --needed git github-cli curl jq
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
