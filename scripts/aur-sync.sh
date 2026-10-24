@@ -94,8 +94,8 @@ if [[ -z "$target" || "$target" == "nfgram-desktop-bin" ]]; then
         git checkout -B "$branch"
 
         artifact_url="https://nightly.link/frknkrc44/NFGram/actions/runs/${run_id}/Telegram-Desktop.zip"
-        zip_sha=$(curl -sL "$artifact_url" | sha256sum | awk '{print $1}')
-        lic_sha=$(curl -sL "https://raw.githubusercontent.com/frknkrc44/NFGram/${head_commit}/LICENSE" | sha256sum | awk '{print $1}')
+        zip_sha=$(curl -fsSL --retry 3 "$artifact_url" | sha256sum | awk '{print $1}')
+        lic_sha=$(curl -fsSL --retry 3 "https://raw.githubusercontent.com/frknkrc44/NFGram/${head_commit}/LICENSE" | sha256sum | awk '{print $1}')
 
         app_ver=$(gh api "repos/frknkrc44/NFGram/contents/Telegram/build/version?ref=${head_commit}" \
           --jq '.content' | base64 -d | awk '/^AppVersionStr /{print $2; exit}')
