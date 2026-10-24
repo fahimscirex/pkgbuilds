@@ -113,8 +113,13 @@ if [[ -z "$target" || "$target" == "nfgram-desktop-bin" ]]; then
         sed -i "s|${old_lic_sha}|${lic_sha}|" "$nf_dir/PKGBUILD"
         sed -i "s|${old_zip_sha}|${zip_sha}|" "$nf_dir/PKGBUILD"
 
-        # makepkg refuses to run as root (CI container) and pacman 7 has no --asroot
-        (cd "$nf_dir" && runuser -u nobody -- makepkg --printsrcinfo) > "$nf_dir/.SRCINFO"
+        # makepkg refuses to run as root (CI container), pacman 7 has no --asroot,
+        # and it needs a writable builddir, so build the srcinfo from a temp copy
+        si_tmp=$(mktemp -d)
+        cp "$nf_dir/PKGBUILD" "$si_tmp/"
+        chown -R nobody "$si_tmp"
+        (cd "$si_tmp" && runuser -u nobody -- makepkg --printsrcinfo) > "$nf_dir/.SRCINFO"
+        rm -rf "$si_tmp"
 
         git add "$nf_dir"
         git commit -m "chore(nfgram-desktop-bin): update to run $run_id (${head_commit:0:7})"
