@@ -104,8 +104,9 @@ if [[ -z "$target" || "$target" == "nfgram-desktop-bin" ]]; then
         old_commit=$(awk -F'=' '/^_commit=/{print $2}' "$nf_dir/PKGBUILD")
         old_run=$(awk -F'=' '/^_run_id=/{print $2}' "$nf_dir/PKGBUILD")
         old_ver=$(awk -F'=' '/^pkgver=/{print $2}' "$nf_dir/PKGBUILD")
-        old_zip_sha=$(tail -n 3 "$nf_dir/PKGBUILD" | head -n 1 | tr -d " '")
-        old_lic_sha=$(awk 'NR==36{print}' "$nf_dir/PKGBUILD" | tr -d " '")
+        hashes=($(awk '/^sha256sums=\(/,/\)/ { if ($0 ~ /[0-9a-f]{64}/) { gsub(/[\x27[:space:]]/, ""); print } }' "$nf_dir/PKGBUILD"))
+        old_lic_sha="${hashes[1]}"
+        old_zip_sha="${hashes[-1]}"
 
         sed -i "s|^pkgver=.*|pkgver=${app_ver}.r${run_id}|" "$nf_dir/PKGBUILD"
         sed -i "s|^_run_id=.*|_run_id=${run_id}|" "$nf_dir/PKGBUILD"
