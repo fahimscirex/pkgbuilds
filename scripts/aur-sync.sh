@@ -3,6 +3,7 @@
 # Opens a GitHub PR when an update is found.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+trap 'git checkout -q main 2>/dev/null || true' EXIT
 
 target="${1:-}"
 if [[ -n "$target" ]]; then
@@ -16,13 +17,13 @@ fi
 for dir in "${targets[@]}"; do
   pkg="${dir%/}"
   pkg="${pkg##*/}"
+  [[ -f "$dir/.aurcommit" ]] || continue   # not an AUR-tracked package
   aur_url="https://aur.archlinux.org/${pkg}.git"
 
   remote_commit=$(git ls-remote "$aur_url" HEAD 2>/dev/null | awk '{print $1; exit}')
   [[ -n "$remote_commit" ]] || { echo "==> could not fetch AUR ref for $pkg, skipping"; continue; }
 
-  current_commit=""
-  [[ -f "$dir/.aurcommit" ]] && current_commit=$(head -n 1 "$dir/.aurcommit")
+  current_commit=$(head -n 1 "$dir/.aurcommit")
 
   if [[ "$current_commit" == "$remote_commit" ]]; then
     echo "==> $pkg is up to date with AUR (${remote_commit:0:7})"
@@ -38,11 +39,11 @@ for dir in "${targets[@]}"; do
   git clone --depth 1 "$aur_url" "$tmp"
   rm -rf "$tmp/.git" "$tmp/.gitignore"
 
-  cp -r "$tmp"/* "$dir/"
+  cp -a "$tmp"/. "$dir/"
   echo "$remote_commit" > "$dir/.aurcommit"
   rm -rf "$tmp"
 
-  diff_files=$(git diff --name-only)
+  diff_files=$(git status --porcelain -- "$dir")   # status, not diff: a file upstream added is still untracked
   if [[ -z "$diff_files" ]]; then
     echo "==> no actual file differences for $pkg"
     git checkout main
@@ -93,26 +94,14 @@ if [[ -z "$target" || "$target" == "nfgram-desktop-bin" ]]; then
         branch="upstream-update/nfgram-desktop-bin"
         git checkout -B "$branch"
 
-        artifact_url="https://nightly.link/frknkrc44/NFGram/actions/runs/${run_id}/Telegram-Desktop.zip"
-        zip_sha=$(curl -fsSL --retry 3 "$artifact_url" | sha256sum | awk '{print $1}')
-        lic_sha=$(curl -fsSL --retry 3 "https://raw.githubusercontent.com/frknkrc44/NFGram/${head_commit}/LICENSE" | sha256sum | awk '{print $1}')
-
         app_ver=$(gh api "repos/frknkrc44/NFGram/contents/Telegram/build/version?ref=${head_commit}" \
           --jq '.content' | base64 -d | awk '/^AppVersionStr /{print $2; exit}')
-        [[ -n "$app_ver" ]] || app_ver="7.3.1"
-
-        old_commit=$(awk -F'=' '/^_commit=/{print $2}' "$nf_dir/PKGBUILD")
-        old_run=$(awk -F'=' '/^_run_id=/{print $2}' "$nf_dir/PKGBUILD")
-        old_ver=$(awk -F'=' '/^pkgver=/{print $2}' "$nf_dir/PKGBUILD")
-        hashes=($(awk '/^sha256sums=\(/,/\)/ { if ($0 ~ /[0-9a-f]{64}/) { gsub(/[\x27[:space:]]/, ""); print } }' "$nf_dir/PKGBUILD"))
-        old_lic_sha="${hashes[1]}"
-        old_zip_sha="${hashes[-1]}"
+        [[ -n "$app_ver" ]] || { echo "==> could not read AppVersionStr for $head_commit"; exit 1; }
 
         sed -i "s|^pkgver=.*|pkgver=${app_ver}.r${run_id}|" "$nf_dir/PKGBUILD"
         sed -i "s|^_run_id=.*|_run_id=${run_id}|" "$nf_dir/PKGBUILD"
         sed -i "s|^_commit=.*|_commit=${head_commit}|" "$nf_dir/PKGBUILD"
-        sed -i "s|${old_lic_sha}|${lic_sha}|" "$nf_dir/PKGBUILD"
-        sed -i "s|${old_zip_sha}|${zip_sha}|" "$nf_dir/PKGBUILD"
+        # sha256sums are refreshed by build.sh (updpkgsums) on the runner
 
         # makepkg refuses to run as root (CI container), pacman 7 has no --asroot,
         # and it needs a writable builddir, so build the srcinfo from a temp copy

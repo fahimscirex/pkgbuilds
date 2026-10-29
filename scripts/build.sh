@@ -37,9 +37,12 @@ else
   targets=(packages/*/)
 fi
 
+declare -A SRCINFO
+for d in packages/*/; do SRCINFO[$d]=$(cd "$d" && makepkg --printsrcinfo); done
+failed=()
+
 for dir in "${targets[@]}"; do   # ponytail: alphabetical; order deps by naming or a list if one local package needs another
-  pkgdir="${dir%/}"; pkgdir="${pkgdir##*/}"
-  srcinfo=$(cd "$dir" && makepkg --printsrcinfo)
+  srcinfo=${SRCINFO[$dir]}
   ver=$(awk '/^\tpkgver = /{v=$3} /^\tpkgrel = /{r=$3} /^\tepoch = /{e=$3":"} END{print e v "-" r}' <<<"$srcinfo")
   names=$(awk '/^pkgname = /{print $3}' <<<"$srcinfo")
   need=0
@@ -59,15 +62,10 @@ for dir in "${targets[@]}"; do   # ponytail: alphabetical; order deps by naming 
     fi
 
     if [[ -n "$head_sha" ]]; then
-      commit_file="$OUT/.commit_$pkgdir"
-      if [[ -f "$commit_file" ]] && [[ $(cat "$commit_file") == "$head_sha" ]]; then
-        need=0
-      else
-        short="${head_sha:0:7}"
-        for name in $names; do
-          ls "$OUT/$name-"*"$short"*.pkg.tar.zst >/dev/null 2>&1 || need=1
-        done
-      fi
+      short="${head_sha:0:7}"
+      for name in $names; do
+        ls "$OUT/$name-"*"$short"*.pkg.tar.zst >/dev/null 2>&1 || need=1
+      done
     else
       need=1
     fi
@@ -80,7 +78,12 @@ for dir in "${targets[@]}"; do   # ponytail: alphabetical; order deps by naming 
 
   echo "==> building $dir ($ver)"   # -git packages report a static pkgver here and so rebuild every run
   tmp=$(mktemp -d)
-  (cd "$dir" && PKGDEST=$tmp makechrootpkg -c -r "$CHROOT")
+  # one broken package must not block the others or the publish; failures are reported and exit 1 at the end
+  # (whole chain under `if !` because errexit is off for a tested command)
+  # nightly.link artifacts are unsigned CI zips, so pin whatever the runner downloads instead of a hand-committed hash
+  if ! (cd "$dir" && { [[ $dir != packages/nfgram-desktop-bin/ ]] || updpkgsums; } && PKGDEST=$tmp makechrootpkg -c -r "$CHROOT"); then
+    echo "==> BUILD FAILED: $dir"; failed+=("$dir"); rm -rf "$tmp"; continue
+  fi
   built=()
   for p in "$tmp"/*.pkg.tar.zst; do
     mv -f "$p" "$OUT/"; p=$OUT/${p##*/}
@@ -88,11 +91,10 @@ for dir in "${targets[@]}"; do   # ponytail: alphabetical; order deps by naming 
     built+=("$p")
   done
   repo-add --sign --remove "$OUT/$REPO.db.tar.zst" "${built[@]}"   # after each build so later packages can depend on it
-  [[ -n "$head_sha" ]] && echo "$head_sha" > "$OUT/.commit_$pkgdir"
 done
 
 # drop anything the PKGBUILDs no longer produce (removed packages, -debug packages)
-keep=$(for d in packages/*/; do (cd "$d" && makepkg --printsrcinfo | awk '/^pkgname = /{print $3}'); done)
+keep=$(for d in packages/*/; do awk '/^pkgname = /{print $3}' <<<"${SRCINFO[$d]}"; done)
 for f in "$OUT"/*.pkg.tar.zst; do
   [[ -e $f ]] || break
   n=${f##*/}; name=${n%-*-*-*}
@@ -106,8 +108,10 @@ done
 cp sc1r3x.pub.asc scripts/setup.sh "$OUT/"
 ln -sf sc1r3x.pub.asc "$OUT/archrepo.pub.asc"
 rm -f "$OUT"/*.old "$OUT"/*.old.sig
-sync --exclude "*.old*" --exclude ".commit_*" "$OUT" "r2:$BUCKET"
-# delete any existing .old and .commit_* files from R2
+sync --exclude "*.old*" "$OUT" "r2:$BUCKET"
+# delete any existing .old files from R2
 if [[ -f ~/.config/rclone/rclone.conf ]]; then
-  rclone delete "r2:$BUCKET" --include "*.old*" --include ".commit_*" || true
+  rclone delete "r2:$BUCKET" --include "*.old*" || true
 fi
+((${#failed[@]})) && { echo "==> FAILED: ${failed[*]}"; exit 1; }
+exit 0

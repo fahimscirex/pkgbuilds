@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: prepare builder
         run: |
-          pacman -Syu --noconfirm --needed git rclone sudo devtools
+          pacman -Syu --noconfirm --needed git rclone sudo devtools pacman-contrib
           sed -i '/^OPTIONS=/s/ debug / !debug /' /etc/makepkg.conf  # no -debug packages in the repo
           sed -i '/^COMPRESSZST=/s/=.*/=(zstd -c -T0 --ultra -22 -)/' /etc/makepkg.conf
           systemd-machine-id-setup
