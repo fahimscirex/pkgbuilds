@@ -3,10 +3,10 @@
 # Contributor: KspLite <ksplite@outlook.com>
 
 pkgname=nfgram-desktop-bin
-pkgver=7.4.3.r43331809964
+pkgver=7.4.5.r44783273041
 pkgrel=1
-_run_id=43331809964
-_commit=8a4d48a12492b442fbd67378a46d36655cc22e3d
+_run_id=44783273041
+_commit=983585d4a91e589beeea4794390ee9085acf7b92
 pkgdesc="A third-party Telegram client based on 64Gram and Telegram Desktop - binary version"
 arch=('x86_64')
 url="https://github.com/frknkrc44/NFGram"
