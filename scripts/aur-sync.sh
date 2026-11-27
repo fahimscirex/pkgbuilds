@@ -20,7 +20,8 @@ for dir in "${targets[@]}"; do
   [[ -f "$dir/.aurcommit" ]] || continue   # not an AUR-tracked package
   aur_url="https://aur.archlinux.org/${pkg}.git"
 
-  remote_commit=$(git ls-remote "$aur_url" HEAD 2>/dev/null | awk '{print $1; exit}')
+  # `|| true`: pipefail would otherwise make a transient AUR hiccup exit the script (128) before the guard below runs
+  remote_commit=$(git ls-remote "$aur_url" HEAD | awk '{print $1; exit}' || true)
   [[ -n "$remote_commit" ]] || { echo "==> could not fetch AUR ref for $pkg, skipping"; continue; }
 
   current_commit=$(head -n 1 "$dir/.aurcommit")

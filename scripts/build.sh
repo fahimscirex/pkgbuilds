@@ -58,7 +58,7 @@ for dir in "${targets[@]}"; do   # ponytail: alphabetical; order deps by naming 
       [[ "$frag" =~ ^branch=(.*) ]] && ref="${BASH_REMATCH[1]}"
       [[ "$frag" =~ ^tag=(.*) ]] && ref="refs/tags/${BASH_REMATCH[1]}"
       [[ "$frag" =~ ^commit=(.*) ]] && ref="${BASH_REMATCH[1]}"
-      head_sha=$(git ls-remote "$url" "$ref" 2>/dev/null | awk '{print $1; exit}')
+      head_sha=$(git ls-remote "$url" "$ref" | awk '{print $1; exit}' || true)   # empty on network error -> need=1
     fi
 
     if [[ -n "$head_sha" ]]; then
